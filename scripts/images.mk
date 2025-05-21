@@ -9,9 +9,10 @@ KIND_CLUSTER ?= starter-cluster
 # Project images
 CLOUDNATIVE_PG_IMAGE := ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0
 CLOUDNATIVE_POSTGRESS_IMAGE := ghcr.io/cloudnative-pg/postgresql:17.5-bookworm
+BITNAMI_ODOO_IMAGE := bitnami/odoo:18.0.20250405-debian-12-r2
 
 # All project images (add new images here)
-PROJECT_IMAGES := $(CLOUDNATIVE_PG_IMAGE) $(CLOUDNATIVE_POSTGRESS_IMAGE)
+PROJECT_IMAGES := $(CLOUDNATIVE_PG_IMAGE) $(CLOUDNATIVE_POSTGRESS_IMAGE) $(BITNAMI_ODOO_IMAGE)
 
 # Help for image management commands
 images-help:

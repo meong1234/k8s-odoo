@@ -1,0 +1,107 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: odoo-service
+  namespace: erp-odoo
+spec:
+  timeout: 20m
+  interval: 15m
+  chart:
+    spec:
+      chart: odoo
+      version: 28.2.2
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami-charts
+        namespace: flux-system
+      interval: 15m
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_host
+      targetPath: externalDatabase.host
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_name
+      targetPath: externalDatabase.database
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_user
+      targetPath: externalDatabase.user
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_user
+      targetPath: externalDatabase.postgresqlPostgresUser
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_password
+      targetPath: externalDatabase.password
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: db_password
+      targetPath: externalDatabase.postgresqlPostgresPassword
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: odoo_email
+      targetPath: odooEmail
+    - kind: Secret
+      name: odoo-secrets
+      valuesKey: odoo_password
+      targetPath: odooPassword
+  values:
+    global:
+      security:
+        allowInsecureImages: true
+
+    image:
+      repository: bitnami/odoo
+      tag: 18.0.20250405-debian-12-r2
+
+    odooDatabaseFilter: "^odoo$"
+
+    odooSkipInstall: false
+    loadDemoData: false
+
+    updateStrategy:
+      type: Recreate
+
+    extraEnvVars:
+      - name: ODOO_LIST_DB
+        value: "False"
+      - name: ODOO_SKIP_MODULES_UPDATE
+        value: "false"
+      - name: odoo_debug
+        value: "true"
+      - name: ODOO_DATA_TO_PERSIST
+        value: /opt/bitnami/odoo/conf:/opt/bitnami/odoo/data      
+
+    volumePermissions:
+      enabled: true
+    podSecurityContext:
+      enabled: true
+      fsGroup: 0
+    containerSecurityContext:
+      enabled: true
+      runAsUser: 0
+      runAsGroup: 0
+
+    service:
+      type: ClusterIP
+
+    postgresql:
+      enabled: false
+
+    externalDatabase:
+      create: false
+      port: 5432
+
+    networkPolicy:
+      enabled: false

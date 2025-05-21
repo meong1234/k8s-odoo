@@ -1,0 +1,17 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: erp-pg
+  namespace: erp-db
+spec:
+  instances: 1
+
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      memory: 2Gi
+
+  storage:
+    size: 30Gi

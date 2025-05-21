@@ -1,6 +1,12 @@
 # FluxCD Integration
 # Manages FluxCD setup and configuration in the KinD cluster with OCI Registry
 
+# Define KIND cluster name (default: starter-cluster) - must match value in images.mk
+KIND_CLUSTER ?= starter-cluster
+
+# Define wait timeout for kubectl operations
+WAIT_TIMEOUT ?= 5m
+
 .PHONY: fluxcd-help fluxcd-pull-images fluxcd-load-images fluxcd-install fluxcd-push-artifacts fluxcd-oci-setup fluxcd-setup fluxcd-verify-artifacts
 
 # FluxCD container images
@@ -17,16 +23,19 @@ FLUXCD_MANIFESTS_DIR := $(shell pwd)/fluxcd
 CLUSTERS_MANIFESTS_DIR := $(shell pwd)/kubernetes/clusters
 OPERATORS_MANIFESTS_DIR := $(shell pwd)/kubernetes/operators
 INFRA_MANIFESTS_DIR := $(shell pwd)/kubernetes/infra
+ERP_MANIFESTS_DIR := $(shell pwd)/kubernetes/erp
 
 # Artifact settings
 CLUSTERS_ARTIFACT_NAME := cluster-sync
 OPERATORS_ARTIFACT_NAME := operators-sync
 INFRA_ARTIFACT_NAME := infra-sync
+ERP_ARTIFACT_NAME := erp-sync
 
 # Artifacts to push - each pair is a "directory:name" format
 ARTIFACTS_TO_PUSH := $(CLUSTERS_MANIFESTS_DIR):$(CLUSTERS_ARTIFACT_NAME) \
                      $(OPERATORS_MANIFESTS_DIR):$(OPERATORS_ARTIFACT_NAME) \
-					 $(INFRA_MANIFESTS_DIR):$(INFRA_ARTIFACT_NAME)
+                     $(INFRA_MANIFESTS_DIR):$(INFRA_ARTIFACT_NAME) \
+                     $(ERP_MANIFESTS_DIR):$(ERP_ARTIFACT_NAME)
 
 # OCI Registry settings
 REG_NAME ?= kind-registry

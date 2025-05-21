@@ -1,13 +1,17 @@
 # Docker Image Management for K8s Odoo Project
 # Handles pulling and loading project images into KIND
 
+# Define KIND cluster name (default: odoo)
+KIND_CLUSTER ?= starter-cluster
+
 .PHONY: images-help images-pull-all images-load-all images-manage-all
 
 # Project images
 CLOUDNATIVE_PG_IMAGE := ghcr.io/cloudnative-pg/cloudnative-pg:1.25.0
+CLOUDNATIVE_POSTGRESS_IMAGE := ghcr.io/cloudnative-pg/postgresql:17.5-bookworm
 
 # All project images (add new images here)
-PROJECT_IMAGES := $(CLOUDNATIVE_PG_IMAGE)
+PROJECT_IMAGES := $(CLOUDNATIVE_PG_IMAGE) $(CLOUDNATIVE_POSTGRESS_IMAGE)
 
 # Help for image management commands
 images-help:

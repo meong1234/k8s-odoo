@@ -1,0 +1,118 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: erp-pg
+  namespace: erp-db
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.5-bookworm
+
+  instances: 1
+
+  startDelay: 30
+  stopDelay: 120
+  smartShutdownTimeout: 120
+  failoverDelay: 0
+  switchoverDelay: 600
+
+  primaryUpdateStrategy: unsupervised
+
+  superuserSecret:
+    name: erp-db-super-secret
+  enableSuperuserAccess: true
+
+  bootstrap:
+    initdb:
+      database: erp-db
+      owner: erpuser
+      secret:
+        name: erp-db-user-secret
+      postInitTemplateSQL:
+        - alter user erpuser createdb;
+        - SELECT pg_reload_conf();
+        - CREATE DATABASE odoo;
+        - ALTER DATABASE odoo OWNER TO erpuser;
+        - GRANT ALL PRIVILEGES ON DATABASE odoo TO erpuser;
+        - GRANT USAGE, CREATE ON SCHEMA public TO erpuser;
+        - GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO erpuser;
+        - GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO erpuser;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO erpuser;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO erpuser;
+
+  postgresql:
+    shared_preload_libraries:
+      - auto_explain
+      - pg_stat_statements
+      - pgaudit
+    parameters:
+      timezone: "Asia/Jakarta"
+
+      max_connections: "256"
+      shared_buffers: "128MB"               # ~10-15% of RAM; safe default
+      work_mem: "4MB"                       # Per sort/hash operation; 21MB is too high for low-RAM systems
+      effective_cache_size: "512MB"         # Estimate of OS cache available; ~50% RAM
+      maintenance_work_mem: "64MB"          # Used for VACUUM, CREATE INDEX etc.
+
+      max_parallel_workers: "12"
+      max_worker_processes: "12"
+
+      # Vacuum Thresholds - Tuple Based
+      autovacuum_vacuum_threshold: "20000"           # Vacuum after 20k dead tuples
+      autovacuum_analyze_threshold: "20000"          # Analyze after 20k changed tuples
+      autovacuum_vacuum_scale_factor: "0.0"          # Ignore table size
+      autovacuum_analyze_scale_factor: "0.0"         # Ignore table size
+
+      # Frequency and Cost Control
+      autovacuum_naptime: "10s"                      # Check for tables to vacuum every 10 seconds
+      autovacuum_max_workers: "2"                    # Max concurrent autovacuum workers (keep low on 1 CPU)
+      autovacuum_vacuum_cost_limit: "800"            # Total cost before sleeping (adjustable)
+      autovacuum_vacuum_cost_delay: "10ms"           # Delay between vacuum page fetches (less aggressive)
+      vacuum_cost_limit: "800"                       # Used by manual VACUUM and ANALYZE
+      vacuum_cost_delay: "10ms"                      # Delay for manual vacuum
+
+      vacuum_freeze_min_age: "500000"                # Delay freezing for recent tuples
+      vacuum_freeze_table_age: "150000000"           # Force vacuum at wraparound risk
+      vacuum_multixact_freeze_min_age: "500000"      # Similar freeze control for multixacts
+      vacuum_multixact_freeze_table_age: "150000000" # Force freeze for multixacts
+
+      # Prevent autovacuum from being canceled
+      autovacuum_vacuum_insert_threshold: "20000"    # Trigger vacuum even on insert-only tables
+      autovacuum_vacuum_insert_scale_factor: "0.0"
+
+      # Logging (Optional but useful for tuning)
+      log_autovacuum_min_duration: "0"               # Log all autovacuum runs (can change to '1000' ms later)
+
+      pg_stat_statements.max: "10000"
+      pg_stat_statements.track: "all"
+      auto_explain.log_min_duration: "10s"
+      exit_on_error: "off"
+
+      max_slot_wal_keep_size: "10GB"
+      wal_keep_size: "2GB"
+      wal_receiver_timeout: "5s"
+      wal_sender_timeout: "5s"
+
+      cron.database_name: erp-db
+
+      pgaudit.log: "all, -misc, -read, -write"
+      pgaudit.log_catalog: "off"
+      pgaudit.log_parameter: "on"
+      pgaudit.log_relation: "on"
+    pg_hba:
+      - hostssl postgres streaming_replica all cert
+      - hostssl replication streaming_replica all cert
+      - hostssl erp-db streaming_replica all cert
+      - local all erpuser trust
+      - host all erpuser localhost trust
+      - local all postgres trust
+      - host all postgres localhost trust
+      - host all all 0.0.0.0/0 md5
+      - host all all ::0/0 md5
+
+  monitoring:
+    enablePodMonitor: true
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: required
